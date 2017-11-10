@@ -22,14 +22,14 @@ class Action:
   def run_routine(self, params):
     params = self.routine(params)
 
-    if "wait" in params and params["wait"]:
+    if not "wait" in params or not params["wait"]:
       return params
 
     started_at = time.time()
 
     while (time.time() - started_at < self.wait_for):
       for trigger in self.triggers:
-        if trigger.scene.detected():
+        if trigger.scene.detected():          
           return trigger.action.perform(params)
 
       time.sleep(refresh_rate)
@@ -42,9 +42,12 @@ class Action:
     return self.callback(params)
 
   def perform(self, params):
-    params = self.run_routine(params)
+    while params["run"]:
+      params = self.run_routine(params)
 
-    return self.run_callback(params)
+      params = self.run_callback(params)
+
+    return params
 
 class Trigger:
   def __init__(self, scene, action):
@@ -52,12 +55,18 @@ class Trigger:
     self.action = action
 
 def example_routine(params):
-  print("hello world")
+  params["depth"] += 1
+  
+  print("hello world from depth " + str(params["depth"]))  
 
   return params
 
 def example_callback(params):
-  print("goodbye world")
+  print("goodbye world from depth " + str(params["depth"]))
+
+  params["run"] = False # only run once
+
+  params["depth"] -= 1
 
   return params
 
@@ -69,6 +78,6 @@ def example_bailout(params):
 second_action = Action(example_routine, example_callback, 1, [], example_bailout)
 first_action = Action(example_routine, example_callback, 1, [Trigger(Scene("example_scene"), second_action)], example_bailout)
 
-params = {}
+params = { "run": True, "wait": True, "depth": 0 }
 
 first_action.perform(params)
