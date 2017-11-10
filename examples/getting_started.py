@@ -1,4 +1,3 @@
-# from .context import botticelli
 from context import botticelli
 
 def example_routine(params):
@@ -23,7 +22,7 @@ def example_bailout(params):
   return params
 
 def example_scene_detector():
-  return True
+  return True # pretend scene was detected
 
 second_action = botticelli.Action(example_routine,
     example_callback,
