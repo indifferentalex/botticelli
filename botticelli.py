@@ -56,7 +56,7 @@ class Trigger:
 
 def example_routine(params):
   params["depth"] += 1
-  
+
   print("hello world from depth " + str(params["depth"]))  
 
   return params
@@ -78,6 +78,7 @@ def example_bailout(params):
 second_action = Action(example_routine, example_callback, 1, [], example_bailout)
 first_action = Action(example_routine, example_callback, 1, [Trigger(Scene("example_scene"), second_action)], example_bailout)
 
-params = { "run": True, "wait": True, "depth": 0 }
+# required keys (and their boolean values) to work: run, wait, and timed_out
+params = { "run": True, "wait": True, "timed_out": False, "depth": 0 }
 
 first_action.perform(params)
