@@ -16,42 +16,30 @@ def example_callback(params):
 
   return params
 
-def blank_callback(params):
-  params["run"] = False
-
-  return params
-
-def example_bailout(params):
-  print("bailing out")
-
-  return params
-
 def example_state_detector(params):
-  params["detected"] = True # pretend state was detected
+  return True # pretend state was detected
 
-  return params
+second_action = botticelli.Action(
+  "second action",
+  example_routine,
+  example_callback,
+  1,
+  [])
 
-detector_action = botticelli.Action(example_state_detector,
-    blank_callback,
-    1,
-    [],
-    example_bailout)
+first_action = botticelli.Action(
+  "first action",
+  example_routine,
+  example_callback,
+  1,
+  [
+    botticelli.Trigger(
+      botticelli.State("example_state_detector", example_state_detector),
+      second_action
+    )
+  ])
 
-second_action = botticelli.Action(example_routine,
-    example_callback,
-    1,
-    [],
-    example_bailout)
-
-first_action = botticelli.Action(example_routine,
-    example_callback,
-    1,
-    [
-      (detector_action, second_action)
-    ],
-    example_bailout)
-
-# required keys (and their boolean values) to work: run, wait, detected and timed_out
-params = { "run": True, "wait": True, "detected": False, "timed_out": False, "depth": 0 }
+# required keys (and their boolean values) to work: run, wait and timed_out,
+# depth is an additional custom param used for this example.
+params = { "run": True, "wait": True, "timed_out": False, "depth": 0 }
 
 first_action.perform(params)

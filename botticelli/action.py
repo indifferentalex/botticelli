@@ -7,15 +7,17 @@ class Action:
   perform function, passing in a params hash.
 
   Attributes:
+    name (string): The name of the action, for better orientation when building
     routine (function): A function that will run when action is performed.
     callback (function): A function that will run after the main routine and
       and any detected triggers are finished executing.
     wait_for (float): Seconds to wait for any triggers to be detected.
-    triggers (array of pairs of botticelli.Action): An array of triggers,
-      which are pairs of actions, the first of which detects certain states
-      and the second is the action to be performed if that state is detected.
+    triggers (array of botticelli.Trigger): An array of triggers, which consist
+      of a scene and an action. When the scene is detected, the corresponding
+      action gets performed.
   """
-  def __init__(self, routine, callback, wait_for, triggers):
+  def __init__(self, name, routine, callback, wait_for, triggers):
+    self.name = name
     self.routine = routine
     self.callback = callback
     self.wait_for = wait_for
@@ -27,18 +29,19 @@ class Action:
     if not params["wait"]:
       return params
 
-    started_at = time.time()
+    if len(self.triggers) > 0:
+      params["timed_out"] = False
 
-    while (time.time() - started_at < self.wait_for):
-      for trigger in self.triggers:
-        params = trigger[0].perform(params)
+      started_at = time.time()
 
-        if params["detected"]: 
-          return trigger[1].perform(params)
+      while (time.time() - started_at < self.wait_for):
+        for trigger in self.triggers:
+          if trigger.state.detected(params): 
+            return trigger.action.perform(params)
 
-      time.sleep(0.1)
+        time.sleep(0.1)
 
-    params["timed_out"] = True
+      params["timed_out"] = True
 
     return params
 
