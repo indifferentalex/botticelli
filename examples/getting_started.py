@@ -16,13 +16,26 @@ def example_callback(params):
 
   return params
 
+def blank_callback(params):
+  params["run"] = False
+
+  return params
+
 def example_bailout(params):
   print("bailing out")
 
   return params
 
-def example_scene_detector():
-  return True # pretend scene was detected
+def example_state_detector(params):
+  params["detected"] = True # pretend state was detected
+
+  return params
+
+detector_action = botticelli.Action(example_state_detector,
+    blank_callback,
+    1,
+    [],
+    example_bailout)
 
 second_action = botticelli.Action(example_routine,
     example_callback,
@@ -34,13 +47,11 @@ first_action = botticelli.Action(example_routine,
     example_callback,
     1,
     [
-      botticelli.Trigger(
-        botticelli.Scene("example_scene", example_scene_detector),
-        second_action)
+      (detector_action, second_action)
     ],
     example_bailout)
 
-# required keys (and their boolean values) to work: run, wait, and timed_out
-params = { "run": True, "wait": True, "timed_out": False, "depth": 0 }
+# required keys (and their boolean values) to work: run, wait, detected and timed_out
+params = { "run": True, "wait": True, "detected": False, "timed_out": False, "depth": 0 }
 
 first_action.perform(params)
