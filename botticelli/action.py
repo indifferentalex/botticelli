@@ -16,10 +16,10 @@ class Action:
       and any detected triggers are finished executing.
     wait_for (float): Seconds to wait for any triggers to be detected.
     triggers (array of botticelli.Trigger): An array of triggers describing
-      the various potential scenes that could be detected and the actions to
+      the various potential states that could be detected and the actions to
       perform should they be detected.
     bailout (function): A function to run in the case of something going
-      wrong (incompatible scene detected, action returning an error, etc.).
+      wrong (incompatible state detected, action returning an error, etc.).
       Bailouts are not currently implemented.
   """
   def __init__(self, routine, callback, wait_for, triggers, bailout):
@@ -39,7 +39,7 @@ class Action:
 
     while (time.time() - started_at < self.wait_for):
       for trigger in self.triggers:
-        if trigger.scene.detected():          
+        if trigger.state.detected():          
           return trigger.action.perform(params)
 
       time.sleep(0.1)
