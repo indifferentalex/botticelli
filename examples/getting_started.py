@@ -1,45 +1,67 @@
 from context import botticelli
 
-def example_routine(params):
+# write any routines to run
+
+def dig(params):
   params["depth"] += 1
 
   print("hello world from depth " + str(params["depth"]))  
 
   return params
 
-def example_callback(params):
+def climb(params):
   print("goodbye world from depth " + str(params["depth"]))
-
-  params["run"] = False # only run once
 
   params["depth"] -= 1
 
   return params
 
-def example_state_detector(params):
-  return True # pretend state was detected
+# write scene detectors for triggering other actions
 
-second_action = botticelli.Action(
-  "second action",
-  example_routine,
-  example_callback,
+def keep_digging_detector(params):
+  return params["depth"] < 2
+
+def keep_climbing_detector(params):
+  return params["depth"] > 0
+
+def stop_digging_detector(params):
+  return params["depth"] == 2
+
+# create all the actions and triggers for them
+
+climb_up = botticelli.Action(
+  "climb up",
+  climb,
   1,
-  [])
+  [],
+  None)
 
-first_action = botticelli.Action(
-  "first action",
-  example_routine,
-  example_callback,
+climb_up.add_trigger(
+  botticelli.Trigger(
+    botticelli.Scene("keep climbing detector", keep_climbing_detector),
+    climb_up))
+
+dig_down = botticelli.Action(
+  "dig down",
+  dig,
   1,
-  [
-    botticelli.Trigger(
-      botticelli.State("example_state_detector", example_state_detector),
-      second_action
-    )
-  ])
+  [],
+  None)
 
-# required keys (and their boolean values) to work: run, wait and timed_out,
-# depth is an additional custom param used for this example.
-params = { "run": True, "wait": True, "timed_out": False, "depth": 0 }
+dig_down.add_trigger(
+  botticelli.Trigger(
+    botticelli.Scene("keep digging detector", keep_digging_detector),
+    dig_down))
 
-first_action.perform(params)
+dig_down.add_trigger(
+  botticelli.Trigger(
+    botticelli.Scene("target depth detector", stop_digging_detector),
+    climb_up))
+
+# choose the first action, create a params dictionary and start the main loop
+
+action_to_run = dig_down
+params = { "depth": 0 }
+
+while action_to_run:
+  action_to_run, params = action_to_run.perform(params)

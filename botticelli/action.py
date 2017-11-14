@@ -2,59 +2,44 @@ import time
 
 class Action:
   """
-  An action is initiliazed with a routine, a callback, a wait_for duration and
-  an array of triggers. An action is performed by calling the
-  perform function, passing in a params hash.
+  An action is initiliazed with a name, a routine, a wait for duration,
+  an array of triggers and a recovery action. The action is performed
+  by calling the perform function. Once the routine is run, the perform
+  function will loop for all triggers checking if any of their scenes
+  have been detected, in which case their corresponding action will be
+  returned. If no triggers are activated then the recovery action will
+  be returned.
 
   Attributes:
     name (string): The name of the action, for better orientation when building
     routine (function): A function that will run when action is performed.
-    callback (function): A function that will run after the main routine and
-      and any detected triggers are finished executing.
     wait_for (float): Seconds to wait for any triggers to be detected.
     triggers (array of botticelli.Trigger): An array of triggers, which consist
       of a scene and an action. When the scene is detected, the corresponding
       action gets performed.
+    recovery (a botticelli.Action): The action to be performed if no triggers
+      are activated and the wait loop times out.    
   """
-  def __init__(self, name, routine, callback, wait_for, triggers):
+  def __init__(self, name, routine, wait_for, triggers, recovery):
     self.name = name
     self.routine = routine
-    self.callback = callback
     self.wait_for = wait_for
     self.triggers = triggers
- 
-  def run_routine(self, params):
-    params = self.routine(params)
-
-    if not params["wait"]:
-      return params
-
-    if len(self.triggers) > 0:
-      params["timed_out"] = False
-
-      started_at = time.time()
-
-      while (time.time() - started_at < self.wait_for):
-        for trigger in self.triggers:
-          if trigger.state.detected(params): 
-            return trigger.action.perform(params)
-
-        time.sleep(0.1)
-
-      params["timed_out"] = True
-
-    return params
-
-  def run_callback(self, params):
-    return self.callback(params)
+    self.recovery = recovery
 
   def perform(self, params):
-    while True:
-      params = self.run_routine(params)
+    self.routine(params)
 
-      params = self.run_callback(params)
+    started_at = time.time()
 
-      if not params["run"]:
-        break
+    while (time.time() - started_at < self.wait_for):
+      for trigger in self.triggers:
+        if trigger.scene.detected(params):          
+          return (trigger.action, params)
 
-    return params
+      time.sleep(0.1)
+
+    return (self.recovery, params)
+
+  def add_trigger(self, trigger):
+    self.triggers.append(trigger)
