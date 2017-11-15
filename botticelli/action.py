@@ -20,12 +20,13 @@ class Action:
     recovery (a botticelli.Action): The action to be performed if no triggers
       are activated and the wait loop times out.    
   """
-  def __init__(self, name, routine, wait_for, triggers, recovery):
+  def __init__(self, name, routine, wait_for, triggers, recovery, options = {}):
     self.name = name
     self.routine = routine
     self.wait_for = wait_for
     self.triggers = triggers
     self.recovery = recovery
+    self.options = options
 
   def perform(self, params):
     self.routine(params)
@@ -34,12 +35,15 @@ class Action:
 
     while (time.time() - started_at < self.wait_for):
       for trigger in self.triggers:
-        if trigger.scene.detected(params):          
+        if trigger.scene.detected(params): 
           return (trigger.action, params)
 
       time.sleep(0.1)
 
     return (self.recovery, params)
+
+  def set_recovery(self, recovery):
+    self.recovery = recovery
 
   def add_trigger(self, trigger):
     self.triggers.append(trigger)
