@@ -13,7 +13,8 @@ class Action:
   Attributes:
     name (string): The name of the action, for better orientation when building
     routine (function): A function that will run when action is performed.
-    wait_for (float): Seconds to wait for any triggers to be detected.
+    wait_for (object): Seconds to wait for any triggers to be detected, any
+      object that can be cast to a float.
     triggers (array of botticelli.Trigger): An array of triggers, which consist
       of a scene and an action. When the scene is detected, the corresponding
       action gets performed.
@@ -32,8 +33,9 @@ class Action:
     self.routine(params)
 
     started_at = time.time()
+    wait_time = float(self.wait_for)
 
-    while (time.time() - started_at < self.wait_for):
+    while (time.time() - started_at < wait_time):
       for trigger in self.triggers:
         if trigger.scene.detected(params): 
           return (trigger.action, params)
