@@ -116,8 +116,6 @@ def first_and_last_instances_of_color_in_area(xs, ys, xe, ye, r, g, b):
 
   matched_coords = []
 
-  # TODO optimize, start top left, as soon as first match is found
-  # restart from bottom right until second match is found
   for i in range(xs, xe, 1):
     for j in range(ys, ye, 1):
       color = current_screen.getpixel((i, j))
@@ -226,8 +224,8 @@ def move_mouse_to_color_area(xs, ys, xe, ye, r, g, b):
   color_area = first_and_last_color_in_area(xs, ys, xe, ye, r, g, b)
 
   if color_area:
-    # TODO refactor those minus 2's, ATM it guarantees point inside area, as long as area isn't too small
-    x, y = point_in_area(color_area[0][0] + 2, color_area[0][1] + 2, color_area[1][0] - 2, color_area[1][1] - 2)
+    # TODO handle single pixel areas correctly
+    x, y = point_in_area(color_area[0][0], color_area[0][1], color_area[1][0], color_area[1][1])
 
     move_mouse(x, y)
 
