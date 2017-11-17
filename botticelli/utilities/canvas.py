@@ -49,7 +49,7 @@ def refresh_screen():
 
   if (datetime.now() - last_refresh).total_seconds() > refresh_rate:
     current_screen = ImageGrab.grab()
-    last_refresh = datetime.now()
+    last_refresh = datetime.now()    
 
 def coords_parser(x, y):
   if not ((isinstance(x, int) or isinstance(x, float)) and (isinstance(y, int) or isinstance(y, float))):
@@ -125,12 +125,13 @@ def first_and_last_color_in_area(xs, ys, xe, ye, r, g, b):
       if (color[0] == r) and (color[1] == g) and (color[2] == b):
         matched_coords.append((i, j))
 
+  all_x = map(lambda coords: coords[0], matched_coords)
+  all_y = map(lambda coords: coords[1], matched_coords)
+
   if len(matched_coords) == 0:
     return False
-  elif len(matched_coords) == 1:
-    return matched_coords[0]
   else:
-    return [matched_coords[0], matched_coords[-1]]
+    return [(min(all_x), min(all_y)), (max(all_x), max(all_y))]
 
 def mouse_in_area(xs, ys, xe, ye):
   xs, ys = coords_parser(xs, ys)
@@ -163,13 +164,23 @@ def wait_for(amount):
   else:
     time.sleep(amount)
 
-def move_mouse(end_x, end_y, method):
+def rotate_point(center_point, point, angle):
+  angle = math.radians(angle)
+
+  temp_point = point[0] - center_point[0], point[1] - center_point[1]
+  temp_point = (temp_point[0] * math.cos(angle) - temp_point[1] * math.sin(angle), temp_point[0] * math.sin(angle) + temp_point[1] * math.cos(angle))
+  temp_point = temp_point[0] + center_point[0], temp_point[1] + center_point[1]
+
+  return temp_point
+
+def move_mouse(end_x, end_y):
   end_x, end_y = coords_parser(end_x, end_y)
 
-  end_x /= scaling_factor
-  end_y /= scaling_factor
+  iteration_duration = 0
 
-  iteration_duration = 0.002
+  db = sqlite3.connect('C:/Development/apparition/paths/paths.sqlite')
+
+  iterator = db.cursor()
 
   start_x = mouse.position()[0]
   start_y = mouse.position()[1]
@@ -181,40 +192,98 @@ def move_mouse(end_x, end_y, method):
 
   angle = math.degrees(math.atan2(delta_x, delta_y))
 
-  nodes = method(start_x, start_y, end_x, end_y)
+  good_paths = []
+
+  threshold = 5
+
+  while not good_paths:
+    iterator.execute("select * from paths")
+
+    for path in iterator.fetchall():
+      if (math.fabs(path[0] - distance) < threshold):
+        good_paths.append(path)
+
+    threshold += 5
+
+  selected_path = good_paths[random.randint(0, len(good_paths) - 1)]
+
+  angle_difference = angle - selected_path[1]
+
+  nodes = str(selected_path[2])
+  nodes = nodes.replace('[', '')
+  nodes = nodes.replace(']', '')
+  nodes = nodes.replace('), ', '|')
+  nodes = nodes.replace('(', '')
+  nodes = nodes.replace(', ', ',')
+
+  nodes = nodes.split('|')
+  nodes[-1] = nodes[-1].replace(')', '')
 
   i = 0
 
-  while i < len(nodes):
-    mouse.move(nodes[i][0], nodes[i][1])
+  if (len(nodes) > 2):
+    for node in nodes:
+      try:
+        nodes[i] = node.split(',')
+        nodes[i][0] = int(nodes[i][0])
+        nodes[i][1] = int(nodes[i][1])
+      except:
+        raise ValueError
+      
+      i += 1
 
-    time.sleep(iteration_duration)
+    try:
+      total_x_translation = nodes[0][0] - start_x
+      total_y_translation = nodes[0][1] - start_y
+    except:
+      raise ValueError
 
-    i += 1
+    prev_x = int(nodes[0][0])
+    prev_y = int(nodes[0][1])
 
-def jumper_mouse(start_x, start_y, end_x, end_y):
-  return [(end_x, end_y)]
+    translated_start_x = prev_x - total_x_translation
+    translated_start_y = prev_y - total_y_translation
 
-def banal_mouse(start_x, start_y, end_x, end_y):
-  nodes = []
+    i = 1
 
-  delta_x = math.fabs(start_x - end_x)
-  delta_y = math.fabs(start_y - end_y)
+    while i < len(nodes):
+      x = int(nodes[i][0])
+      y = int(nodes[i][1])
 
-  # each iteration moves across largest dimension by about 4 pixels
-  iterations_count = delta_x / 4.0 if delta_x > delta_y else delta_y / 4.0
+      velocity = math.sqrt(math.pow(math.fabs(x - prev_x), 2) + math.pow(math.fabs(y - prev_y), 2))
 
-  iteration_delta_x = float(start_x - end_x) * -1 / iterations_count
-  iteration_delta_y = float(start_y - end_y) * -1 / iterations_count
+      if velocity < 2:
+        current_thickness = 1
+      elif velocity < 3:
+        current_thickness = 2
+      elif velocity < 4:
+        current_thickness = 3
+      else:
+        current_thickness = 4
 
-  i = 0
+      translated_x = x - total_x_translation
+      translated_y = y - total_y_translation
+      translated_prev_x = prev_x - total_x_translation
+      translated_prev_y = prev_y - total_y_translation
 
-  while i < iterations_count:
-    nodes.append((int(start_x + i * iteration_delta_x), int(start_y + i * iteration_delta_y)))
+      rotated_coords = rotate_point((translated_start_x, translated_start_y), (translated_x, translated_y), -angle_difference)
 
-    i += 1
+      rotated_x = rotated_coords[0]
+      rotated_y = rotated_coords[1]
 
-  return nodes
+      rotated_coords = rotate_point((translated_start_x, translated_start_y), (translated_prev_x, translated_prev_y), -angle_difference)
+
+      rotated_prev_x = rotated_coords[0]
+      rotated_prev_y = rotated_coords[1]
+
+      mouse.move(int(rotated_x), int(rotated_y))
+
+      time.sleep(iteration_duration)
+
+      prev_x = x
+      prev_y = y
+
+      i += 1
 
 def move_mouse_to_area(xs, ys, xe, ye):
   x, y = point_in_area(xs, ys, xe, ye)
@@ -225,8 +294,7 @@ def move_mouse_to_color_area(xs, ys, xe, ye, r, g, b):
   color_area = first_and_last_color_in_area(xs, ys, xe, ye, r, g, b)
 
   if color_area:
-    # TODO refactor those minus 2's, ATM it guarantees point inside area, as long as area isn't too small
-    x, y = point_in_area(color_area[0][0] + 2, color_area[0][1] + 2, color_area[1][0] - 2, color_area[1][1] - 2)
+    x, y = point_in_area(color_area[0][0], color_area[0][1], color_area[1][0] + 1, color_area[1][1] + 1)
 
     move_mouse(x, y)
 
