@@ -74,9 +74,9 @@ def color_at(x, y):
 
   x, y = coords_parser(x, y)
 
-  r, g, b, a = current_screen.getpixel((x, y))
+  color = current_screen.getpixel((x, y))
 
-  return { "r": r, "g": g, "b": b }
+  return { "r": color[0], "g": color[1], "b": color[2] }
 
 def check_for_color(xs, ys, xe, ye, r, g, b):
   refresh_screen()
@@ -84,8 +84,8 @@ def check_for_color(xs, ys, xe, ye, r, g, b):
   xs, ys = coords_parser(xs, ys)
   xe, ye = coords_parser(xe, ye)
 
-  for i in range(xs, xe, 1):
-    for j in range(ys, ye, 1):
+  for i in range(xs, xe + 1, 1):
+    for j in range(ys, ye + 1, 1):
       color = current_screen.getpixel((i, j))
 
       if (color[0] == r) and (color[1] == g) and (color[2] == b):
@@ -99,8 +99,8 @@ def only_contains_color(xs, ys, xe, ye, r, g, b):
   xs, ys = coords_parser(xs, ys)
   xe, ye = coords_parser(xe, ye)
 
-  for i in range(xs, xe, 1):
-    for j in range(ys, ye, 1):
+  for i in range(xs, xe + 1, 1):
+    for j in range(ys, ye + 1, 1):
       color = current_screen.getpixel((i, j))
 
       if (color[0] != r) or (color[1] != g) or (color[2] != b):
@@ -116,8 +116,8 @@ def first_and_last_instances_of_color_in_area(xs, ys, xe, ye, r, g, b):
 
   matched_coords = []
 
-  for i in range(xs, xe, 1):
-    for j in range(ys, ye, 1):
+  for i in range(xs, xe + 1, 1):
+    for j in range(ys, ye + 1, 1):
       color = current_screen.getpixel((i, j))
 
       if (color[0] == r) and (color[1] == g) and (color[2] == b):
@@ -141,8 +141,8 @@ def point_in_area(xs, ys, xe, ye):
   xs, ys = coords_parser(xs, ys)
   xe, ye = coords_parser(xe, ye)
 
-  x = random.randrange(xs, xe, 1)
-  y = random.randrange(ys, ye, 1)
+  x = random.randrange(xs, xe + 1, 1)
+  y = random.randrange(ys, ye + 1, 1)
 
   return (x, y)  
 
@@ -224,7 +224,6 @@ def move_mouse_to_color_area(xs, ys, xe, ye, r, g, b):
   color_area = first_and_last_color_in_area(xs, ys, xe, ye, r, g, b)
 
   if color_area:
-    # TODO handle single pixel areas correctly
     x, y = point_in_area(color_area[0][0], color_area[0][1], color_area[1][0], color_area[1][1])
 
     move_mouse(x, y)
@@ -233,12 +232,12 @@ def move_mouse_to_color_area(xs, ys, xe, ye, r, g, b):
   else:
     return False
 
-def scrollDown(amount):
+def scroll_down(amount):
   mouse.scroll(-1 * amount);
 
   wait_for("pause")
 
-def scrollUp(amount):
+def scroll_up(amount):
   mouse.scroll(amount);
 
   wait_for("pause")
