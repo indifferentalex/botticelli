@@ -1,5 +1,9 @@
-# Botticelli
+![Botticelli](botticelli.png "Botticelli Logo")
 
-### A multi-platform Python framework for making plug-n-play universal bots, with full input/output capabilities
+A framework for building bots.
 
-Botticelli's goal as a framework is to let you easily and quickly write scripts to interact with your computer environment/workspace. It is divided into two components, the core package has classes that allow you to plan and execute flows of interactions, and the utilities package which comes with helper functions that allow you to detect elements on the screen (considered as an XY plane of RGB values) and interact with it through simulated mouse and keyboard inputs. The fact that it is built around interacting with your computer in the same way you would (looking at the screen, moving the mouse, clicking and typing) means that you can potentially automate any task you normally perform, without having to rely on program APIs.
+The key to automating any task is detecting the current state of the environment (the computer desktop for example), performing actions, detecting any changes in state and then performing more actions based on the new state. Botticelli provides a state machine implementation for defining behaviour and a series of utility packages that can be used to actually perform actions and detect state.
+
+### Getting Started
+
+To install locally, clone the repo and run `pip install -e .` in the root directory.
