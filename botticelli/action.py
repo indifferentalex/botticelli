@@ -7,11 +7,11 @@ class Action:
   by calling the perform function. Once the routine is run, the perform
   function will loop for all triggers checking if any of their scenes
   have been detected, in which case their corresponding action will be
-  returned. If no triggers are activated then the recovery action will
-  be returned.
+  returned. If no triggers are activated within the wait_for duration
+  then the recovery action will be returned.
 
   Attributes:
-    name (string): The name of the action, for better orientation when building
+    name (string): The name of the action, just as a label
     routine (function): A function that will run when action is performed.
     wait_for (object): Seconds to wait for any triggers to be detected, any
       object that can be cast to a float.
@@ -19,7 +19,7 @@ class Action:
       of a scene and an action. When the scene is detected, the corresponding
       action gets performed.
     recovery (a botticelli.Action): The action to be performed if no triggers
-      are activated and the wait loop times out.    
+      are activated and the wait loop times out.
   """
   def __init__(self, name, routine, wait_for, triggers, recovery, options = {}):
     self.name = name
@@ -37,7 +37,9 @@ class Action:
 
     while (time.time() - started_at < wait_time):
       for trigger in self.triggers:
-        if trigger.scene.detected(params): 
+        detected, params = trigger.scene.detected(params)
+
+        if detected: 
           return (trigger.action, params)
 
       time.sleep(0.1)

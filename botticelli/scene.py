@@ -12,4 +12,6 @@ class Scene:
     self.detector = detector
 
   def detected(self, params):
-    return self.detector(params)
+    detected, params = self.detector(params)
+    
+    return (detected, params)

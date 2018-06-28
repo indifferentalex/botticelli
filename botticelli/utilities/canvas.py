@@ -6,6 +6,7 @@ values) and writer functions (simulating mouse and keyboard input).
 """
 
 # reader libraries
+from PIL import Image
 from PIL import ImageGrab
 
 # writer libraries
@@ -28,21 +29,47 @@ elif sys.platform == "win32":
 def detect_screen_size():
   if sys.platform == "darwin":
     scaling_factor = NSScreen.mainScreen().backingScaleFactor()
-    return NSScreen.mainScreen().frame().size.width * scaling_factor, NSScreen.mainScreen().frame().size.height * scaling_factor, NSScreen.mainScreen().backingScaleFactor()
+    return int(NSScreen.mainScreen().frame().size.width * scaling_factor), int(NSScreen.mainScreen().frame().size.height * scaling_factor), scaling_factor
   elif sys.platform == "win32":
     scaling_factor = 1.0
-    return GetSystemMetrics(0), GetSystemMetrics(1), scaling_factor
+    return int(GetSystemMetrics(0)), int(GetSystemMetrics(1)), scaling_factor
   else:
     raise OSError("Incompatible platform")
 
 screen_width, screen_height, scaling_factor = detect_screen_size()
 
 mouse = PyMouse()
-keyboard = PyKeyboard()      
+keyboard = PyKeyboard()
 
 refresh_rate = 0.1 # how often to refresh screen in seconds
 last_refresh = datetime.now()
 current_screen = ImageGrab.grab()
+
+def jumper_mouse(start_x, start_y, end_x, end_y):
+  return [(end_x, end_y)]
+
+def banal_mouse(start_x, start_y, end_x, end_y):
+  nodes = []
+
+  delta_x = math.fabs(start_x - end_x)
+  delta_y = math.fabs(start_y - end_y)
+
+  # each iteration moves across largest dimension by about 4 pixels
+  iterations_count = delta_x / 4.0 if delta_x > delta_y else delta_y / 4.0
+
+  iteration_delta_x = float(start_x - end_x) * -1 / iterations_count
+  iteration_delta_y = float(start_y - end_y) * -1 / iterations_count
+
+  i = 0
+
+  while i < iterations_count:
+    nodes.append((int(start_x + i * iteration_delta_x), int(start_y + i * iteration_delta_y)))
+
+    i += 1
+
+  return nodes
+
+default_mouse_movement_method = banal_mouse
 
 def refresh_screen():
   global current_screen, last_refresh
@@ -52,24 +79,24 @@ def refresh_screen():
     last_refresh = datetime.now()
 
 def coords_parser(x, y):
-  if not ((isinstance(x, int) or isinstance(x, float)) and (isinstance(y, int) or isinstance(y, float))):
-    raise ValueError
+    if not ((isinstance(x, int) or isinstance(x, float)) and (isinstance(y, int) or isinstance(y, float))):
+        raise ValueError
 
-  if isinstance(x, float):
-    x = int(screen_width * 1.0 * x)
+    if isinstance(x, float):
+        x = int((screen_width - 1) * 1.0 * x)
 
-  if isinstance(y, float):
-    y = int(screen_height * 1.0 * y)
+    if isinstance(y, float):
+        y = int((screen_height - 1) * 1.0 * y)
 
-  return x, y
+    return x, y
 
 def mouse_position(relative = False):
   if relative:
     return { "x": mouse.position()[0] / screen_width, "y": mouse.position()[1] / screen_height }
   else:
-    return { "x": int(mouse.position()[0]), "y": int(mouse.position()[1]) }
+    return { "x": int(mouse.position()[0] * scaling_factor), "y": int(mouse.position()[1] * scaling_factor) }
 
-def color_at(x, y):
+def get_color_at(x, y):
   refresh_screen()
 
   x, y = coords_parser(x, y)
@@ -78,8 +105,26 @@ def color_at(x, y):
 
   return { "r": color[0], "g": color[1], "b": color[2] }
 
-def check_for_color(xs, ys, xe, ye, r, g, b):
+# TODO, what's the best way to respond with a bunch of colors?
+def get_colors_in(xs, ys, xe, ye):
   refresh_screen()
+
+  # x, y = coords_parser(x, y)
+
+  # color = current_screen.getpixel((x, y))
+
+  # return { "r": color[0], "g": color[1], "b": color[2] }
+
+  return False
+
+def color_present(r, g, b, xs, ys, xe = None, ye = None):
+  refresh_screen()
+
+  if xe is None:
+    xe = xs
+
+  if ye is None:
+    ye = ys
 
   xs, ys = coords_parser(xs, ys)
   xe, ye = coords_parser(xe, ye)
@@ -137,14 +182,14 @@ def mouse_in_area(xs, ys, xe, ye):
 
   return (mouse_position()["x"] > xs and mouse_position()["x"] < xe and mouse_position()["y"] > ys and mouse_position()["y"] < ye)
 
-def point_in_area(xs, ys, xe, ye):
+def get_point_in_area(xs, ys, xe, ye):
   xs, ys = coords_parser(xs, ys)
   xe, ye = coords_parser(xe, ye)
 
   x = random.randrange(xs, xe + 1, 1)
   y = random.randrange(ys, ye + 1, 1)
 
-  return (x, y)  
+  return (x, y)
 
 def wait_for(amount):
   if amount == "very_little":
@@ -162,7 +207,13 @@ def wait_for(amount):
   else:
     time.sleep(amount)
 
-def move_mouse(end_x, end_y, method):
+def move_mouse_by(delta_x, delta_y, method = default_mouse_movement_method):
+  pass
+
+def move_mouse_into(xs, ys, xe, ye, method = default_mouse_movement_method):
+  move_mouse_to(get_point_in_area(xs, ys, xe, ye), method)
+
+def move_mouse_to(end_x, end_y, method):
   end_x, end_y = coords_parser(end_x, end_y)
 
   end_x /= scaling_factor
@@ -191,42 +242,13 @@ def move_mouse(end_x, end_y, method):
 
     i += 1
 
-def jumper_mouse(start_x, start_y, end_x, end_y):
-  return [(end_x, end_y)]
-
-def banal_mouse(start_x, start_y, end_x, end_y):
-  nodes = []
-
-  delta_x = math.fabs(start_x - end_x)
-  delta_y = math.fabs(start_y - end_y)
-
-  # each iteration moves across largest dimension by about 4 pixels
-  iterations_count = delta_x / 4.0 if delta_x > delta_y else delta_y / 4.0
-
-  iteration_delta_x = float(start_x - end_x) * -1 / iterations_count
-  iteration_delta_y = float(start_y - end_y) * -1 / iterations_count
-
-  i = 0
-
-  while i < iterations_count:
-    nodes.append((int(start_x + i * iteration_delta_x), int(start_y + i * iteration_delta_y)))
-
-    i += 1
-
-  return nodes
-
-def move_mouse_to_area(xs, ys, xe, ye):
-  x, y = point_in_area(xs, ys, xe, ye)
-
-  move_mouse(x, y)
-
 def move_mouse_to_color_area(xs, ys, xe, ye, r, g, b):
   color_area = first_and_last_color_in_area(xs, ys, xe, ye, r, g, b)
 
   if color_area:
     x, y = point_in_area(color_area[0][0], color_area[0][1], color_area[1][0], color_area[1][1])
 
-    move_mouse(x, y)
+    move_mouse_to(x, y)
 
     return True
   else:

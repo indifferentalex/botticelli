@@ -1,5 +1,8 @@
 # https://github.com/github/gitignore/blob/master/Python.gitignore
 
+.DS_Store
+venv
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
