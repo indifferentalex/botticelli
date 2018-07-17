@@ -55,7 +55,7 @@ def banal_mouse(start_x, start_y, end_x, end_y):
   delta_y = math.fabs(start_y - end_y)
 
   # each iteration moves across largest dimension by about 4 pixels
-  iterations_count = delta_x / 4.0 if delta_x > delta_y else delta_y / 4.0
+  iterations_count = math.ceil(delta_x / 4.0 if delta_x > delta_y else delta_y / 4.0)
 
   iteration_delta_x = float(start_x - end_x) * -1 / iterations_count
   iteration_delta_y = float(start_y - end_y) * -1 / iterations_count
